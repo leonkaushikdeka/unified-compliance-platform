@@ -12,7 +12,6 @@ const navigation = [
 ]
 
 export default function Layout() {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
   const location = useLocation()
 
   return (
