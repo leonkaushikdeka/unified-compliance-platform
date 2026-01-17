@@ -1,19 +1,17 @@
-import pytest
-from datetime import datetime, timedelta
-from uuid import uuid4
-from unittest.mock import AsyncMock, MagicMock, patch
+import sys
+from pathlib import Path
 
-from src.services.auth import (
-    hash_password,
-    verify_password,
-    create_access_token,
-    create_refresh_token,
-    decode_token,
-)
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+
+import pytest
+from datetime import datetime
+from uuid import uuid4
 
 
 class TestPasswordHashing:
     def test_hash_password_returns_string(self):
+        from src.services.auth import hash_password
+
         password = "test_password_123"
         hashed = hash_password(password)
         assert isinstance(hashed, str)
@@ -21,17 +19,23 @@ class TestPasswordHashing:
         assert hashed != password
 
     def test_verify_password_correct(self):
+        from src.services.auth import hash_password, verify_password
+
         password = "test_password_123"
         hashed = hash_password(password)
         assert verify_password(password, hashed) is True
 
     def test_verify_password_incorrect(self):
+        from src.services.auth import hash_password, verify_password
+
         password = "test_password_123"
         wrong_password = "wrong_password"
         hashed = hash_password(password)
         assert verify_password(wrong_password, hashed) is False
 
     def test_hash_password_unique(self):
+        from src.services.auth import hash_password
+
         password = "test_password_123"
         hash1 = hash_password(password)
         hash2 = hash_password(password)
@@ -40,6 +44,8 @@ class TestPasswordHashing:
 
 class TestTokenGeneration:
     def test_create_access_token(self):
+        from src.services.auth import create_access_token, decode_token
+
         data = {"sub": "user123", "email": "test@example.com"}
         token = create_access_token(data)
         assert isinstance(token, str)
@@ -52,6 +58,8 @@ class TestTokenGeneration:
         assert payload.type == "access"
 
     def test_create_refresh_token(self):
+        from src.services.auth import create_refresh_token, decode_token
+
         data = {"sub": "user123"}
         token = create_refresh_token(data)
         assert isinstance(token, str)
@@ -62,6 +70,8 @@ class TestTokenGeneration:
         assert payload.type == "refresh"
 
     def test_decode_token_invalid(self):
+        from src.services.auth import decode_token
+
         result = decode_token("invalid_token")
         assert result is None
 
