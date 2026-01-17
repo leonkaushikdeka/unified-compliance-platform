@@ -17,6 +17,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - compliance-network
 
   redis:
     image: redis:7-alpine
@@ -30,6 +32,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - compliance-network
 
   celery-worker:
     build:
@@ -42,6 +46,7 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/1
       - CELERY_RESULT_URL=redis://redis:6379/2
+      - APP_ENV=production
     depends_on:
       postgres:
         condition: service_healthy
@@ -49,6 +54,8 @@ services:
         condition: service_healthy
     volumes:
       - ./uploads:/app/uploads
+    networks:
+      - compliance-network
 
   celery-beat:
     build:
@@ -61,11 +68,14 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/1
       - CELERY_RESULT_URL=redis://redis:6379/2
+      - APP_ENV=production
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+    networks:
+      - compliance-network
 
   app:
     build:
@@ -77,6 +87,7 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/compliance
       - REDIS_URL=redis://redis:6379/0
+      - APP_ENV=production
     depends_on:
       postgres:
         condition: service_healthy
@@ -86,6 +97,8 @@ services:
       - ./uploads:/app/uploads
     env_file:
       - .env
+    networks:
+      - compliance-network
 
   frontend:
     build:
@@ -97,12 +110,14 @@ services:
     depends_on:
       - app
     environment:
-      - VITE_API_URL=http://localhost:8000
+      - VITE_API_URL=http://app:8000
+    networks:
+      - compliance-network
 
 volumes:
   postgres_data:
   redis_data:
 
 networks:
-  default:
-    name: compliance-network
+  compliance-network:
+    driver: bridge
