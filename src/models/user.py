@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Optional
 from uuid import uuid4
 
@@ -17,8 +17,8 @@ class Tenant(Base):
     plan = Column(String(50), default="starter")
     is_active = Column(Boolean, default=True)
     settings = Column(Text, default="{}")
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
+    updated_at = Column(DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
 
     users = relationship("User", back_populates="tenant")
     assessments = relationship("Assessment", back_populates="tenant")
@@ -41,8 +41,8 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     email_verified = Column(Boolean, default=False)
     last_login = Column(DateTime)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
+    updated_at = Column(DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
 
     tenant = relationship("Tenant", back_populates="users")
     audit_logs = relationship("AuditLog", back_populates="user")
@@ -63,7 +63,7 @@ class RefreshToken(Base):
     token = Column(String(500), unique=True, nullable=False)
     expires_at = Column(DateTime, nullable=False)
     is_revoked = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
     user_agent = Column(String(500))
     ip_address = Column(String(50))
 

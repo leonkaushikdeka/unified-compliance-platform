@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, status, Request
@@ -199,7 +199,7 @@ async def get_dashboard(
         [
             a
             for a in assessments
-            if a.due_date and a.due_date > datetime.utcnow() and a.status != "completed"
+            if a.due_date and a.due_date > datetime.now(UTC) and a.status != "completed"
         ]
     )
 

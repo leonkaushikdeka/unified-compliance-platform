@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Optional
 from uuid import uuid4
 
@@ -20,8 +20,8 @@ class Framework(Base):
     is_active = Column(Boolean, default=True)
     controls = Column(JSON, default=list)
     requirements = Column(JSON, default=list)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
+    updated_at = Column(DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
 
     tenant = relationship("Tenant", back_populates="frameworks")
     assessments = relationship("Assessment", back_populates="framework")
@@ -49,8 +49,8 @@ class Assessment(Base):
     completed_at = Column(DateTime)
     due_date = Column(DateTime)
     created_by = Column(String(36), ForeignKey("users.id"))
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
+    updated_at = Column(DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
 
     tenant = relationship("Tenant", back_populates="assessments")
     framework = relationship("Framework", back_populates="assessments")
@@ -77,8 +77,8 @@ class ConsentRecord(Base):
     user_agent = Column(String(500))
     expires_at = Column(DateTime)
     withdrawn_at = Column(DateTime)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
+    updated_at = Column(DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
 
     def __repr__(self):
         return (
@@ -102,8 +102,8 @@ class DSRRequest(Base):
     sla_due_date = Column(DateTime)
     completed_at = Column(DateTime)
     created_by = Column(String(36), ForeignKey("users.id"))
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
+    updated_at = Column(DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
 
     tenant = relationship("Tenant")
     assessment = relationship("Assessment", back_populates="dsr_requests")
@@ -127,7 +127,7 @@ class DataDiscoveryScan(Base):
     started_at = Column(DateTime)
     completed_at = Column(DateTime)
     created_by = Column(String(36), ForeignKey("users.id"))
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
 
     def __repr__(self):
         return f"<DataDiscoveryScan(id={self.id}, source={self.source_name}, status={self.status})>"

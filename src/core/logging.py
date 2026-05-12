@@ -1,7 +1,7 @@
 import logging
 import sys
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Any, Dict
 
 import structlog
@@ -41,9 +41,9 @@ def setup_logging() -> None:
 
 @asynccontextmanager
 async def request_context():
-    start_time = datetime.utcnow()
+    start_time = datetime.now(UTC)
     yield
-    duration = (datetime.utcnow() - start_time).total_seconds()
+    duration = (datetime.now(UTC) - start_time).total_seconds()
 
 
 class LoggerMixin:

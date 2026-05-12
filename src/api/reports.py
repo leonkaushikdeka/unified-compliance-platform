@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, UTC
 from uuid import uuid4
 import json
 import io
@@ -25,7 +25,7 @@ async def generate_report(
     db: AsyncSession = Depends(get_db),
 ):
     report_id = str(uuid4())
-    expires_at = datetime.utcnow()
+    expires_at = datetime.now(UTC)
 
     if report_data.format == "pdf":
         expires_at = expires_at
@@ -54,7 +54,7 @@ async def download_report(
 
     report_data = {
         "report_id": report_id,
-        "generated_at": datetime.utcnow().isoformat(),
+        "generated_at": datetime.now(UTC).isoformat(),
         "tenant_id": current_user.tenant_id,
         "summary": {
             "total_assessments": len(assessments),

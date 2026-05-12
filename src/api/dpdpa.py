@@ -1,7 +1,10 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from uuid import uuid4
 import hashlib
+import hmac
 import secrets
+
+from src.core.config import settings
 
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy import select, func
@@ -81,7 +84,7 @@ async def start_data_discovery_scan(
         status="running",
         scan_config=scan_request.scan_config or {},
         created_by=current_user.id,
-        started_at=datetime.utcnow(),
+        started_at=datetime.now(UTC),
     )
     db.add(scan)
     await db.flush()
@@ -90,7 +93,7 @@ async def start_data_discovery_scan(
     scan.pii_found = pii_found
     scan.risk_score = risk_score
     scan.status = "completed"
-    scan.completed_at = datetime.utcnow()
+    scan.completed_at = datetime.now(UTC)
 
     await db.flush()
     await db.refresh(scan)
@@ -147,7 +150,7 @@ async def create_consent_session(
     db: AsyncSession = Depends(get_db),
 ):
     session_id = str(uuid4())
-    expires_at = datetime.utcnow() + timedelta(hours=24)
+    expires_at = datetime.now(UTC) + timedelta(hours=24)
 
     consent_url = f"/consent/{session_id}?purpose={','.join(session_data.purposes)}"
 
@@ -168,9 +171,13 @@ async def record_consent(
     session_id = consent_data.session_id
     consent_proof = consent_data.proof or secrets.token_urlsafe(32)
     if consent_data.granted:
-        consent_proof = hashlib.sha256(
-            f"{session_id}:{consent_data.granted}:{consent_proof}".encode()
+        salt = secrets.token_hex(16)
+        proof_hash = hmac.new(
+            settings.ENCRYPTION_KEY.encode(),
+            f"{session_id}:{consent_data.granted}:{salt}:{consent_proof}".encode(),
+            hashlib.sha256,
         ).hexdigest()
+        consent_proof = f"{salt}:{proof_hash}"
 
     record = ConsentRecord(
         id=str(uuid4()),
@@ -233,7 +240,7 @@ async def create_dsr_request(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    sla_due_date = datetime.utcnow() + timedelta(hours=72)
+    sla_due_date = datetime.now(UTC) + timedelta(hours=72)
 
     dsr = DSRRequest(
         id=str(uuid4()),
@@ -370,7 +377,7 @@ async def process_dsr_request(
         raise HTTPException(status_code=400, detail="Identity not verified")
 
     dsr.status = "completed"
-    dsr.completed_at = datetime.utcnow()
+    dsr.completed_at = datetime.now(UTC)
     dsr.notes = process_data.notes or ""
     await db.flush()
 

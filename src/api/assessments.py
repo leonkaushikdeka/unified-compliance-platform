@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -72,7 +72,7 @@ async def start_assessment(
         raise HTTPException(status_code=400, detail="Assessment already started")
 
     assessment.status = "in_progress"
-    assessment.started_at = datetime.utcnow()
+    assessment.started_at = datetime.now(UTC)
     await db.flush()
 
     return {"message": "Assessment started", "assessment_id": assessment_id}
@@ -137,7 +137,7 @@ async def complete_assessment(
         raise HTTPException(status_code=400, detail="Assessment not in progress")
 
     assessment.status = "completed"
-    assessment.completed_at = datetime.utcnow()
+    assessment.completed_at = datetime.now(UTC)
 
     controls = assessment.controls_status or {}
     total = len(controls)

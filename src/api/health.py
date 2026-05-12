@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, UTC
 from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,7 +14,7 @@ router = APIRouter()
 async def health_check():
     return {
         "status": "healthy",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "version": "1.0.0",
     }
 
@@ -32,5 +32,5 @@ async def readiness_check(
     return {
         "status": "ready" if db_status == "connected" else "not_ready",
         "database": db_status,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }

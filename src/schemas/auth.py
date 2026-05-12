@@ -1,7 +1,10 @@
-from datetime import datetime
+import re
+from datetime import datetime, UTC
 from typing import Optional
-from pydantic import BaseModel, EmailStr, Field
 
+from pydantic import BaseModel, EmailStr, Field, field_validator
+
+from src.core.security import validate_password_strength
 from src.models.user import User
 from src.models.assessment import Assessment, Framework
 
@@ -40,6 +43,14 @@ class RegisterRequest(BaseModel):
     last_name: str
     tenant_name: str
     tenant_slug: str = Field(min_length=3, max_length=50, pattern=r"^[a-z0-9-]+$")
+
+    @field_validator("password")
+    @classmethod
+    def check_password_strength(cls, v: str) -> str:
+        error = validate_password_strength(v)
+        if error:
+            raise ValueError(error)
+        return v
 
 
 class RegisterResponse(BaseModel):
@@ -96,6 +107,14 @@ class UserResponse(BaseModel):
 class PasswordChangeRequest(BaseModel):
     current_password: str
     new_password: str = Field(min_length=8)
+
+    @field_validator("new_password")
+    @classmethod
+    def check_new_password_strength(cls, v: str) -> str:
+        error = validate_password_strength(v)
+        if error:
+            raise ValueError(error)
+        return v
 
 
 class PasswordResetRequest(BaseModel):

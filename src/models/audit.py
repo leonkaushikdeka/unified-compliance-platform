@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, UTC
 from uuid import uuid4
 
 from sqlalchemy import Column, String, DateTime, Text, ForeignKey, JSON
@@ -20,7 +20,7 @@ class AuditLog(Base):
     user_agent = Column(String(500))
     status = Column(String(50), default="success")
     error_message = Column(Text)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
 
     user = relationship("User", back_populates="audit_logs")
 

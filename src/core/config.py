@@ -1,4 +1,5 @@
 import os
+import secrets
 from functools import lru_cache
 from pathlib import Path
 from typing import List, Optional
@@ -20,13 +21,13 @@ class Settings(BaseSettings):
     APP_DEBUG: bool = True
     APP_HOST: str = "0.0.0.0"
     APP_PORT: int = 8000
-    SECRET_KEY: str = Field(default="change-me-in-production")
+    SECRET_KEY: str = Field(default_factory=lambda: secrets.token_urlsafe(32))
 
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/compliance"
     DATABASE_URL_SYNC: str = "postgresql://postgres:postgres@localhost:5432/compliance"
     REDIS_URL: str = "redis://localhost:6379/0"
 
-    JWT_SECRET_KEY: str = Field(default="your-jwt-secret-key-min-32-chars")
+    JWT_SECRET_KEY: str = Field(default_factory=lambda: secrets.token_urlsafe(32))
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7
@@ -63,7 +64,25 @@ class Settings(BaseSettings):
     PASSWORD_MIN_LENGTH: int = 8
     OTP_EXPIRE_MINUTES: int = 10
 
-    ENCRYPTION_KEY: str = "your-encryption-key-32-chars"
+    ENCRYPTION_KEY: str = Field(default_factory=lambda: secrets.token_urlsafe(32))
+
+    def model_post_init(self, __context):
+        _bad_defaults = {
+            "change-me-in-production",
+            "your-jwt-secret-key-min-32-chars",
+            "your-encryption-key-32-chars",
+            "your-secret-key-change-in-production",
+        }
+        if self.APP_ENV == "production":
+            bad_fields = [
+                f for f in ("SECRET_KEY", "JWT_SECRET_KEY", "ENCRYPTION_KEY")
+                if getattr(self, f) in _bad_defaults
+            ]
+            if bad_fields:
+                raise ValueError(
+                    f"SECURITY ERROR: {', '.join(bad_fields)} must be changed from default in production. "
+                    f"Set these via environment variables or the .env file."
+                )
 
     @property
     def async_database_url(self) -> str:

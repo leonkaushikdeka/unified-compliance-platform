@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, status, Request
@@ -23,6 +23,7 @@ from src.services.auth import (
     hash_password,
     verify_password,
 )
+from src.core.security import hash_pii, rate_limiter
 from src.schemas.auth import (
     LoginRequest,
     LoginResponse,
@@ -44,6 +45,13 @@ async def login(
     login_data: LoginRequest,
     db: AsyncSession = Depends(get_db),
 ):
+    ip = request.client.host if request.client else "unknown"
+    if settings.RATE_LIMIT_ENABLED and not rate_limiter.check(f"login:{ip}", 5, 60):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many login attempts. Please try again later.",
+        )
+
     user = await authenticate_user(db, login_data.email, login_data.password)
     if not user:
         logger.warning("Failed login attempt", email=login_data.email)
@@ -61,7 +69,7 @@ async def login(
         }
     )
     refresh_token = create_refresh_token(data={"sub": user.id})
-    expires_at = datetime.utcnow() + datetime.timedelta(days=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS)
+    expires_at = datetime.now(UTC) + datetime.timedelta(days=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS)
 
     await create_refresh_token_record(
         db=db,
@@ -72,7 +80,7 @@ async def login(
         ip_address=request.client.host if request.client else None,
     )
 
-    user.last_login = datetime.utcnow()
+    user.last_login = datetime.now(UTC)
     await db.flush()
 
     await db.execute(
@@ -81,7 +89,7 @@ async def login(
                 tenant_id=user.tenant_id,
                 user_id=user.id,
                 action="user.login",
-                details={"email": user.email},
+                details={"email_hash": hash_pii(user.email)},
                 ip_address=request.client.host if request.client else None,
                 user_agent=request.headers.get("user-agent"),
             ).__dict__
@@ -106,6 +114,13 @@ async def register(
     register_data: RegisterRequest,
     db: AsyncSession = Depends(get_db),
 ):
+    ip = request.client.host if request.client else "unknown"
+    if settings.RATE_LIMIT_ENABLED and not rate_limiter.check(f"register:{ip}", 5, 60):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many registration attempts. Please try again later.",
+        )
+
     existing_user = await db.execute(select(User).where(User.email == register_data.email))
     if existing_user.scalar_one_or_none():
         raise HTTPException(
@@ -141,7 +156,7 @@ async def register(
         }
     )
     refresh_token = create_refresh_token(data={"sub": user.id})
-    expires_at = datetime.utcnow() + datetime.timedelta(days=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS)
+    expires_at = datetime.now(UTC) + datetime.timedelta(days=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS)
 
     await create_refresh_token_record(
         db=db,
@@ -203,7 +218,7 @@ async def refresh_token(
         }
     )
     new_refresh_token = create_refresh_token(data={"sub": user.id})
-    expires_at = datetime.utcnow() + datetime.timedelta(days=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS)
+    expires_at = datetime.now(UTC) + datetime.timedelta(days=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS)
 
     await create_refresh_token_record(
         db=db,
